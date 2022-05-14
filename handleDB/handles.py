@@ -87,7 +87,7 @@ class HandleConfig(Config):
     NUM_CLASSES = 1 + 3  # COCO has 80 classes
 
     # Number of training steps per epoch
-    STEPS_PER_EPOCH = 4
+    STEPS_PER_EPOCH = 60
     # STEPS_PER_EPOCH = 100
 
     # Skip detections with < 90% confidence
@@ -141,6 +141,7 @@ class HandleDataset(utils.Dataset):
             # All classes
         class_ids = sorted(coco.getCatIds())
         print("class IDs:", class_ids)
+        # print(coco.getImgIds(catIds=[1001]))
 
         # All images or a subset?
         if class_ids:
@@ -153,14 +154,18 @@ class HandleDataset(utils.Dataset):
             # All images
             image_ids = list(coco.imgs.keys())
 
+        print("{} '{}' images.".format(len(image_ids), subset))
+
         # Add classes
         for i in class_ids:
             self.add_class("coco", i, coco.loadCats(i)[0]["name"])
 
         # Add images
+        # print(os.path.join(image_dir, coco.imgs[0]['file_name']))
         for i in image_ids:
             self.add_image(
-                "coco", image_id=i,
+                "coco", 
+                image_id=i,
                 path=os.path.join(image_dir, coco.imgs[i]['file_name']),
                 width=coco.imgs[i]["width"],
                 height=coco.imgs[i]["height"],
@@ -455,14 +460,20 @@ if __name__ == '__main__':
         # dataset_train.load_coco(args.dataset, "train", year=args.year, auto_download=args.download)
         # if args.year in '2014':
         #     dataset_train.load_coco(args.dataset, "valminusminival", year=args.year, auto_download=args.download)
-        # dataset_train.prepare()
+        dataset_train.prepare()
+        print("Training:")
+        print("Image Count: {}".format(len(dataset_train.image_ids)))
+        print("Class Count: {}".format(dataset_train.num_classes))
 
         # Validation dataset
         dataset_val = HandleDataset()
-        dataset_train.load_handles(args.dataset, "val")
+        dataset_val.load_handles(args.dataset, "val")
         # val_type = "val" if args.year in '2017' else "minival"
         # dataset_val.load_coco(args.dataset, val_type, year=args.year, auto_download=args.download)
         dataset_val.prepare()
+        print("Validation:")
+        print("Image Count: {}".format(len(dataset_train.image_ids)))
+        print("Class Count: {}".format(dataset_train.num_classes))
 
         # Image Augmentation
         # Right/Left flip 50% of the time
@@ -472,11 +483,9 @@ if __name__ == '__main__':
 
         # Training - Stage 1
         print("Training network heads")
-        print(dataset_train)
-        print(dataset_val)
         model.train(dataset_train, dataset_val,
                     learning_rate=config.LEARNING_RATE,
-                    epochs=20,
+                    epochs=30,
                     layers='heads',
                     augmentation=augmentation)
 
